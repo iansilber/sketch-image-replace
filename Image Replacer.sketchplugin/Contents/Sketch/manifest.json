@@ -1,0 +1,38 @@
+{
+  "author" : "",
+  "commands" : [
+    {
+      "handler" : "onRun",
+      "script" : "Replace.cocoascript",
+      "shortcut" : "cmd shift i",
+      "name" : "Replace",
+      "identifier" : "image replace"
+    },
+    {
+      "handler" : "onRun",
+      "script" : "ReplaceManually.cocoascript",
+      "shortcut" : "cmd ctrl shift i",
+      "name" : "Choose Manually",
+      "identifier" : "image directory replace"
+    },
+    {
+      "handler": "clearStoredDirectory",
+      "script": "Replace.cocoascript",
+      "name" : "Set Default Directory",
+      "shortcut" : "",
+      "identifier" : "image replace new directory"
+    }
+  ],
+  "menu": {
+    "items": [
+      "image replace",
+      "image directory replace",
+      "image replace new directory"
+    ]
+  },
+  "identifier" : "com.iansilber.image-replace",
+  "version" : "1.0",
+  "description" : "",
+  "authorEmail" : "iansilber@gmail.com",
+  "name" : "Image Replace"
+}

@@ -1,0 +1,82 @@
+// (shift cmd i)
+@import "utility.js";
+@import "sandbox.js";
+
+var clearStoredDirectory = function(context) {
+
+	var scriptPath = context.scriptPath;
+	scriptPath = scriptPath.substring(0, scriptPath.indexOf('\.sketchplugin/') + 1);			
+	var prefFile = scriptPath + "sketchplugin/Contents/Resources/preferences.json";
+
+	var panel = [NSOpenPanel openPanel];
+	var imageFileNames = [];
+	[panel setCanChooseFiles:false];
+	[panel setCanChooseDirectories:true];
+	[panel setAllowsMultipleSelection:false]; // yes if more than one dir is allowed
+
+	var clicked = [panel runModal];
+
+	if (clicked == NSFileHandlingPanelOKButton) {
+		var selectedDirectory = [[panel URLs] objectAtIndex:0];
+		var selectedDirectoryStr = [NSString stringWithFormat:"%@", [selectedDirectory path]];
+
+		var str = [NSString stringWithFormat:'{"directory":"' + selectedDirectoryStr + '"}'];
+		[str writeToFile:prefFile atomically:true encoding:NSUTF8StringEncoding error:nil];
+
+	}
+
+	var app = [NSApplication sharedApplication];
+    [app displayDialog:"You can know use the Replace script with the new directory." withTitle:"New directory set!"];
+}
+
+var onRun = function(context) {
+
+	var scriptPath = context.scriptPath;
+	scriptPath = scriptPath.substring(0, scriptPath.indexOf('\.sketchplugin/') + 1);			
+	var prefFile = scriptPath + "sketchplugin/Contents/Resources/preferences.json";
+
+	var contents = [NSString stringWithContentsOfFile:prefFile];
+	var preferences = [NSJSONSerialization JSONObjectWithData:[contents dataUsingEncoding:NSUTF8StringEncoding] 
+                                 options:NSJSONReadingMutableContainers 
+                                   error:nil];
+
+	if (preferences.directory == "") {
+		var panel = [NSOpenPanel openPanel];
+		var imageFileNames = [];
+		[panel setCanChooseFiles:false];
+		[panel setCanChooseDirectories:true];
+		[panel setAllowsMultipleSelection:false]; // yes if more than one dir is allowed
+
+		var clicked = [panel runModal];
+
+		if (clicked == NSFileHandlingPanelOKButton) {
+			var selectedDirectory = [[panel URLs] objectAtIndex:0];
+			log("SELECTED: " + [selectedDirectory path]);
+			var selectedDirectoryStr = [NSString stringWithFormat:"%@", [selectedDirectory path]];
+
+			var str = [NSString stringWithFormat:'{"directory":"' + selectedDirectoryStr + '"}'];
+			[str writeToFile:prefFile atomically:true encoding:NSUTF8StringEncoding error:nil];
+
+		}
+	} else {
+
+		new AppSandbox().authorize(preferences.directory + "/", function() {
+			var fileManager = [NSFileManager defaultManager];
+			var imageFileNames = [fileManager contentsOfDirectoryAtPath:preferences.directory error:nil];
+			shuffle(imageFileNames);
+			count = imageFileNames.count();
+
+		    for (var i = 0; i < count; i++) {
+
+		        imageFileNames[i] = preferences.directory + "/" + imageFileNames[i];
+		    }
+
+		    replaceWithImages(imageFileNames, context);
+
+		    if(context.selection.count() == 0) [doc showMessage:'Select at least one vector shape'];;
+
+			
+
+		})
+	}
+}

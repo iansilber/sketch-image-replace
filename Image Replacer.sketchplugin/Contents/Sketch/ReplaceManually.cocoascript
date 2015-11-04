@@ -1,0 +1,43 @@
+// (shift ctrl cmd i)
+@import "utility.js";
+@import "sandbox.js";
+
+var onRun = function(context) {
+	var fileTypes = [NSArray arrayWithObjects:@"png", @"jpg", @"gif", @"jpeg", nil];
+	var panel = [NSOpenPanel openPanel];
+	var imageFileNames = [];
+	[panel setCanChooseFiles:true];
+	[panel setCanChooseDirectories:true];
+	[panel setAllowsMultipleSelection:true]; // yes if more than one dir is allowed
+	[panel setAllowedFileTypes:fileTypes];
+
+	var clicked = [panel runModal];
+
+	if (clicked == NSFileHandlingPanelOKButton) {
+		var isDirectory = false;
+		var firstURL = [[panel URLs] objectAtIndex:0];
+		var firstURLPath = [NSString stringWithFormat:@"%@", firstURL];
+		
+		if ([firstURLPath hasSuffix:@"/"]) {
+			var fileManager = [NSFileManager defaultManager];
+			var files = [fileManager contentsOfDirectoryAtPath:[firstURL path] error:nil];
+			var images = [files filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"pathExtension IN %@", fileTypes]];
+			var count = images.count();
+			var loop = [images objectEnumerator];
+			firstURLPath = [firstURL path];
+			while (imagePath = [loop nextObject]) {
+	        	imageFileNames.push(firstURLPath + '/' + imagePath);
+			}
+			
+
+		} else {
+			var loop = [[panel URLs] objectEnumerator];
+			while (url = [loop nextObject]) {
+				imageFileNames.push([url path]);
+			}
+		}
+
+		replaceWithImages(imageFileNames, context);
+
+	}
+}
