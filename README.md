@@ -12,6 +12,7 @@ This plugin has three commands:
 * **Replace Manually (Ctrl + shift + cmd + i):** Same as above but lets you choose the folder each time
 * **Settings:** change the directory used for the Replace command
 
-**Invoke with Cmd + shift + i**
+[![Demo video](http://img.youtube.com/vi/77KUm7uDPmY/0.jpg)](https://www.youtube.com/watch?v=77KUm7uDPmY)
+
 
 [Download Sketch Image Replacer](https://github.com/iansilber/sketch-image-replace/archive/master.zip)
