@@ -1,6 +1,5 @@
-// (shift ctrl cmd i)
-@import "utility.js";
-@import "sandbox.js";
+@import "scripts/utility.js";
+@import "scripts/sandbox.js";
 
 var onRun = function(context) {
 	var fileTypes = [NSArray arrayWithObjects:@"png", @"jpg", @"gif", @"jpeg", nil];
@@ -19,25 +18,16 @@ var onRun = function(context) {
 		var firstURLPath = [NSString stringWithFormat:@"%@", firstURL];
 		
 		if ([firstURLPath hasSuffix:@"/"]) {
-			var fileManager = [NSFileManager defaultManager];
-			var files = [fileManager contentsOfDirectoryAtPath:[firstURL path] error:nil];
-			var images = [files filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"pathExtension IN %@", fileTypes]];
-			var count = images.count();
-			var loop = [images objectEnumerator];
-			firstURLPath = [firstURL path];
-			while (imagePath = [loop nextObject]) {
-	        	imageFileNames.push(firstURLPath + '/' + imagePath);
-			}
-			
-
+			getFilesAndReplace([firstURL path], context)
 		} else {
 			var loop = [[panel URLs] objectEnumerator];
 			while (url = [loop nextObject]) {
 				imageFileNames.push([url path]);
 			}
+			replaceWithImages(imageFileNames, context);
 		}
 
-		replaceWithImages(imageFileNames, context);
+		
 
 	}
 }

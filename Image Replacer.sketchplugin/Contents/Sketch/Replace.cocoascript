@@ -1,82 +1,52 @@
-// (shift cmd i)
-@import "utility.js";
-@import "sandbox.js";
+@import "scripts/utility.js";
+@import "scripts/sandbox.js";
+@import "scripts/settings.js";
 
 var clearStoredDirectory = function(context) {
 
-	var scriptPath = context.scriptPath;
-	scriptPath = scriptPath.substring(0, scriptPath.indexOf('\.sketchplugin/') + 1);			
-	var prefFile = scriptPath + "sketchplugin/Contents/Resources/preferences.json";
+	var MySettings = new Settings(context)
 
 	var panel = [NSOpenPanel openPanel];
 	var imageFileNames = [];
 	[panel setCanChooseFiles:false];
+	[panel setMessage:"Choose the folder you would like to use for image replacement"];
 	[panel setCanChooseDirectories:true];
 	[panel setAllowsMultipleSelection:false]; // yes if more than one dir is allowed
+	[panel setPrompt:"Use this Directory"]
 
 	var clicked = [panel runModal];
 
 	if (clicked == NSFileHandlingPanelOKButton) {
 		var selectedDirectory = [[panel URLs] objectAtIndex:0];
-		var selectedDirectoryStr = [NSString stringWithFormat:"%@", [selectedDirectory path]];
+		MySettings.set("directory", [NSString stringWithFormat:"%@", [selectedDirectory path]])
 
-		var str = [NSString stringWithFormat:'{"directory":"' + selectedDirectoryStr + '"}'];
-		[str writeToFile:prefFile atomically:true encoding:NSUTF8StringEncoding error:nil];
-
+		var target = [[[NSURL fileURLWithPath:[selectedDirectory path]] URLByStandardizingPath] URLByResolvingSymlinksInPath]
+		var Sandbox = new AppSandbox(context)
+		Sandbox.save_bookmark(target)
 	}
 
 	var app = [NSApplication sharedApplication];
-    [app displayDialog:"You can know use the Replace script with the new directory." withTitle:"New directory set!"];
+	var doc = context.document
+    [doc showMessage:"The default directory has been set"]
 }
 
 var onRun = function(context) {
 
-	var scriptPath = context.scriptPath;
-	scriptPath = scriptPath.substring(0, scriptPath.indexOf('\.sketchplugin/') + 1);			
-	var prefFile = scriptPath + "sketchplugin/Contents/Resources/preferences.json";
+	var MySettings = new Settings(context)
+    var directory = MySettings.get("directory");
 
-	var contents = [NSString stringWithContentsOfFile:prefFile];
-	var preferences = [NSJSONSerialization JSONObjectWithData:[contents dataUsingEncoding:NSUTF8StringEncoding] 
-                                 options:NSJSONReadingMutableContainers 
-                                   error:nil];
+	if (directory == null) {
+		var alert = [[NSAlert alloc] init]
+		[alert setMessageText:"Setup"]
+		[alert setInformativeText:"Choose a directory containing images. You can change this at any time by going to Image Replace > Settings."]
+		[alert addButtonWithTitle:'Continue...']
+		var responseCode = [alert runModal]
 
-	if (preferences.directory == "") {
-		var panel = [NSOpenPanel openPanel];
-		var imageFileNames = [];
-		[panel setCanChooseFiles:false];
-		[panel setCanChooseDirectories:true];
-		[panel setAllowsMultipleSelection:false]; // yes if more than one dir is allowed
-
-		var clicked = [panel runModal];
-
-		if (clicked == NSFileHandlingPanelOKButton) {
-			var selectedDirectory = [[panel URLs] objectAtIndex:0];
-			log("SELECTED: " + [selectedDirectory path]);
-			var selectedDirectoryStr = [NSString stringWithFormat:"%@", [selectedDirectory path]];
-
-			var str = [NSString stringWithFormat:'{"directory":"' + selectedDirectoryStr + '"}'];
-			[str writeToFile:prefFile atomically:true encoding:NSUTF8StringEncoding error:nil];
-
-		}
-	} else {
-
-		new AppSandbox().authorize(preferences.directory + "/", function() {
-			var fileManager = [NSFileManager defaultManager];
-			var imageFileNames = [fileManager contentsOfDirectoryAtPath:preferences.directory error:nil];
-			shuffle(imageFileNames);
-			count = imageFileNames.count();
-
-		    for (var i = 0; i < count; i++) {
-
-		        imageFileNames[i] = preferences.directory + "/" + imageFileNames[i];
-		    }
-
-		    replaceWithImages(imageFileNames, context);
-
-		    if(context.selection.count() == 0) [doc showMessage:'Select at least one vector shape'];;
-
-			
-
-		})
+		this.clearStoredDirectory(context)
+		directory = MySettings.get("directory")
 	}
+
+	new AppSandbox(context).authorize(directory, function() {
+		getFilesAndReplace(directory, context)
+	})
 }

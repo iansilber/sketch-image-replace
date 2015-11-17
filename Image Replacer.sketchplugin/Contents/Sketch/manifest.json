@@ -18,16 +18,16 @@
     {
       "handler": "clearStoredDirectory",
       "script": "Replace.cocoascript",
-      "name" : "Set Default Directory",
+      "name" : "Settings",
       "shortcut" : "",
-      "identifier" : "image replace new directory"
+      "identifier" : "settings"
     }
   ],
   "menu": {
     "items": [
       "image replace",
       "image directory replace",
-      "image replace new directory"
+      "settings"
     ]
   },
   "identifier" : "com.iansilber.image-replace",

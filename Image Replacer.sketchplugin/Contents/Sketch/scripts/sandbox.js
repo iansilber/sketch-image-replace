@@ -5,7 +5,10 @@ if(in_sandbox){
   print("We’re sandboxed: here be dragons")
 }
 
-AppSandbox = function(){ }
+AppSandbox = function(context){
+  var scriptPath = context.scriptPath.substring(0, context.scriptPath.indexOf('\.sketchplugin/') + 1)
+  this.prefFile =  scriptPath + "sketchplugin/Contents/Resources/preferences.plist"
+}
 AppSandbox.prototype.authorize = function(path, callback){
   log("AppSandbox.authorize("+path+")")
   var success = false
@@ -24,40 +27,46 @@ AppSandbox.prototype.authorize = function(path, callback){
     if(!bookmark){
       log("– No bookmark found, let's create one")
       var target = this.file_picker(url)
-      bookmark = [target bookmarkDataWithOptions:NSURLBookmarkCreationWithSecurityScope
-                      includingResourceValuesForKeys:nil
-                      relativeToURL:nil
-                      error:{}]
-      // Store bookmark
-      this.set_data_for_key(bookmark,bd_key)
+      this.save_bookmark(target)
     } else {
       log("– Bookmark found")
     }
+
     log("  " + bookmark)
 
     // Thanks to @joethephish for this pointer (pun totally intended)
     var bookmarkDataIsStalePtr = MOPointer.alloc().init()
-    var allowedURL = [NSURL URLByResolvingBookmarkData:bookmark
-                            options:NSURLBookmarkResolutionWithSecurityScope
-                            relativeToURL:nil
-                            bookmarkDataIsStale:bookmarkDataIsStalePtr
-                            error:{}]
+    var allowedUrl = [NSURL URLByResolvingBookmarkData:bookmark 
+                        options:NSURLBookmarkResolutionWithSecurityScope 
+                        relativeToURL:nil 
+                        bookmarkDataIsStale:bookmarkDataIsStalePtr 
+                        error:{}]
 
     if(bookmarkDataIsStalePtr.value() != 0){
       log("— Bookmark data is stale")
       log(bookmarkDataIsStalePtr.value())
     }
 
-    if(allowedURL) {
+    if(allowedUrl) {
       success = true
     }
   } else {
     success = true
   }
 
-  // [allowedUrl startAccessingSecurityScopedResource]
+  [allowedUrl startAccessingSecurityScopedResource]
   callback.call(this,success)
   // [allowedUrl stopAccessingSecurityScopedResource]
+}
+AppSandbox.prototype.save_bookmark = function(target) {
+  var bd_key = this.key_for_url(target)
+  bookmark = [target bookmarkDataWithOptions:NSURLBookmarkCreationWithSecurityScope
+                includingResourceValuesForKeys:nil
+                relativeToURL:nil
+                error:{}]
+  // Store bookmark
+  this.set_data_for_key(bookmark,bd_key)
+
 }
 AppSandbox.prototype.key_for_url = function(url){
   return "bd_" + [url absoluteString]
@@ -91,13 +100,11 @@ AppSandbox.prototype.file_picker = function(url){
 }
 
 AppSandbox.prototype.get_data_for_key = function(key){
-  var def = [NSUserDefaults standardUserDefaults]
-  return [def objectForKey:key]
+  var dictionary = [NSMutableDictionary dictionaryWithContentsOfFile:this.prefFile];
+  return [dictionary objectForKey:key]
 }
-AppSandbox.prototype.set_data_for_key = function(data,key){
-  var defaults = [NSUserDefaults standardUserDefaults],
-      default_values = [NSMutableDictionary dictionary]
-
-  [default_values setObject:data forKey:key]
-  [defaults registerDefaults:default_values]
+AppSandbox.prototype.set_data_for_key = function(data,key) {
+  var dictionary = [NSMutableDictionary dictionaryWithContentsOfFile:this.prefFile];
+  [dictionary setObject:data forKey:key]
+  [dictionary writeToFile:this.prefFile atomically:true]
 }
