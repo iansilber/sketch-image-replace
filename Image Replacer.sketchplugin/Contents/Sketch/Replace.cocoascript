@@ -1,39 +1,9 @@
 @import "scripts/utility.js";
-@import "scripts/sandbox.js";
-@import "scripts/settings.js";
 
-var clearStoredDirectory = function(context) {
-
-	var MySettings = new Settings(context)
-
-	var panel = [NSOpenPanel openPanel];
-	var imageFileNames = [];
-	[panel setCanChooseFiles:false];
-	[panel setMessage:"Choose the folder you would like to use for image replacement"];
-	[panel setCanChooseDirectories:true];
-	[panel setAllowsMultipleSelection:false]; // yes if more than one dir is allowed
-	[panel setPrompt:"Use this Directory"]
-
-	var clicked = [panel runModal];
-
-	if (clicked == NSFileHandlingPanelOKButton) {
-		var selectedDirectory = [[panel URLs] objectAtIndex:0];
-		MySettings.set("directory", [NSString stringWithFormat:"%@", [selectedDirectory path]])
-
-		var target = [[[NSURL fileURLWithPath:[selectedDirectory path]] URLByStandardizingPath] URLByResolvingSymlinksInPath]
-		var Sandbox = new AppSandbox(context)
-		Sandbox.save_bookmark(target)
-	}
-
-	var app = [NSApplication sharedApplication];
-	var doc = context.document
-    [doc showMessage:"The default directory has been set"]
-}
-
+// Primary method. Pulls a collection of randomly selected images from a user-configured directory.
 var onRun = function(context) {
 
-	var MySettings = new Settings(context)
-    var directory = MySettings.get("directory");
+	var directory = [[NSUserDefaults standardUserDefaults] objectForKey:"directory"]
 
 	if (directory == null) {
 		var alert = [[NSAlert alloc] init]
@@ -42,11 +12,53 @@ var onRun = function(context) {
 		[alert addButtonWithTitle:'Continue...']
 		var responseCode = [alert runModal]
 
-		this.clearStoredDirectory(context)
-		directory = MySettings.get("directory")
+		this.resetDefaultDirectory(context)
+		directory = [[NSUserDefaults standardUserDefaults] objectForKey:"directory"]
 	}
 
-	new AppSandbox(context).authorize(directory, function() {
-		getFilesAndReplace(directory, context)
-	})
+	getFilesAndReplace(directory, context)
 }
+
+var replaceWithPicker = function(context) {
+
+	var panel = showFileBrowserAndRequireDirectory(false);
+
+	if (panel.response == NSFileHandlingPanelOKButton) {
+		var thePanel = panel.panel;
+		var isDirectory = false;
+		var firstURL = [[thePanel URLs] objectAtIndex:0];
+		var firstURLPath = [NSString stringWithFormat:@"%@", firstURL];
+
+		//directory
+		if ([firstURLPath hasSuffix:@"/"]) { 
+			getFilesAndReplace([firstURL path], context)
+
+		//files
+		} else {
+			var imageFileNames = []
+			var loop = [[thePanel URLs] objectEnumerator];
+			while (url = [loop nextObject]) {
+				imageFileNames.push([url path]);
+			}
+			replaceWithImages(imageFileNames, context);
+		}
+	}
+}
+
+// Reset the default directory.
+var resetDefaultDirectory = function(context) {
+
+	var panel = showFileBrowserAndRequireDirectory(true)
+
+	if (panel.response == NSFileHandlingPanelOKButton) {
+		var thePanel = panel.panel
+		var selectedDirectory = [[thePanel URLs] objectAtIndex:0];
+		[[NSUserDefaults standardUserDefaults] setObject:[selectedDirectory path] forKey:"directory"]
+		var target = [[[NSURL fileURLWithPath:[selectedDirectory path]] URLByStandardizingPath] URLByResolvingSymlinksInPath]
+	}
+
+	var app = [NSApplication sharedApplication];
+	var doc = context.document
+    [doc showMessage:"The default directory has been set"]
+}
+

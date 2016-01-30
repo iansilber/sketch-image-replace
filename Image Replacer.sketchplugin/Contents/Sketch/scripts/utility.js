@@ -17,21 +17,39 @@ function shuffle(array) {
   return array;
 }
 
+function showFileBrowserAndRequireDirectory(requireDirectory) {
+
+  var fileTypes = [NSArray arrayWithObjects:@"png", @"jpg", @"gif", @"jpeg", nil];
+  var panel = [NSOpenPanel openPanel];
+  var imageFileNames = [];
+  if (requireDirectory == true) {
+    [panel setCanChooseFiles:false];  
+  } else {
+    [panel setCanChooseFiles:true];  
+  }
+  
+  [panel setCanChooseDirectories:true];
+  [panel setAllowsMultipleSelection:true]; // yes if more than one dir is allowed
+  [panel setAllowedFileTypes:fileTypes];
+
+  var response = [panel runModal];
+  return {response: response, panel: panel}
+}
+
 function replaceWithImages(images, context) {
     selection = context.selection;
     for(var i = 0; i < [selection count]; i++) {
+      var data = [NSData dataWithContentsOfFile:images[i]]
+      var image = [[MSImageData alloc] initWithData:data sha:nil];
+      var layer = selection[i];
+      if ([layer class] == MSShapeGroup) {
 
-    var image = [[NSImage alloc] initByReferencingFile:images[i]];
-    var layer = selection[i];
-        if([layer class] == MSShapeGroup){
-            var fill = layer.style().fills().firstObject();
-            fill.setFillType(4);                
-            var coll = layer.style().fills().firstObject().documentData().images();              
-            [fill setPatternImage:image collection:coll]
-            layer.style().fills().firstObject().setPatternFillType(1);
-        }
+        var fill = layer.style().fills().firstObject()
+        [fill setFillType:4]
+        [fill setImage:image]
+        layer.style().fills().firstObject().setPatternFillType(1);
+      }
     }
-
   if([selection count] == 0) [doc showMessage:'Select at least one vector shape'];;
 
 }
@@ -51,7 +69,6 @@ function getFilesAndReplace(directory, context) {
       shuffle(imageFileNames);
       for (var i = 0; i < context.selection.count(); i++) {
           imageFileNames[i] = directory + "/" + imageFileNames[i];
-          log(imageFileNames[i])
       }
       replaceWithImages(imageFileNames, context);
       if(context.selection.count() == 0) [doc showMessage:'Select at least one vector shape'];
