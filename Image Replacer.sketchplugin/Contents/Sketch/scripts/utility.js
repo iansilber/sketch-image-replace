@@ -18,8 +18,7 @@ function shuffle(array) {
 }
 
 function showFileBrowserAndRequireDirectory(requireDirectory) {
-
-  var fileTypes = [NSArray arrayWithObjects:@"png", @"jpg", @"gif", @"jpeg", nil];
+  var fileTypes = [NSArray arrayWithArray:["png", "jpg", "gif", "jpeg"]];
   var panel = [NSOpenPanel openPanel];
   var imageFileNames = [];
   if (requireDirectory == true) {
@@ -55,7 +54,7 @@ function replaceWithImages(images, context) {
 }
 
 function getFilesAndReplace(directory, context) {
-    var fileTypes = [NSArray arrayWithObjects:@"png", @"PNG", @"jpg", @"JPG", @"jpeg", @"JPEG", @"gif", @"GIF", nil];
+    var fileTypes = [NSArray arrayWithArray:["png", "PNG", "jpg", "JPG", "jpeg", "JPEG", "gif", "GIF"]];
     var fileManager = [NSFileManager defaultManager];
     var files = [fileManager contentsOfDirectoryAtPath:directory error:nil];
     var imageFileNames = [[files filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"pathExtension IN %@", fileTypes]] mutableCopy]
